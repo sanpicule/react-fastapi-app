@@ -14,9 +14,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const fetchUsers = async () => {
-  const res = await fetch('/users');
+  const res = await fetch('/api/v1/users');
   if (!res.ok) {
     throw new Error('Network response was not ok');
   }
@@ -32,34 +33,48 @@ export function Dashboard() {
   return (
     <>
       <main className="flex-1 p-4 md:p-8">
-        {isLoading && <div>Loading...</div>}
-        {error && <div className="text-red-500">Error: {error.message}</div>}
-        {users && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Users</CardTitle>
-              <CardDescription>A list of users in the system.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users.map((user) => (
+        <Card>
+          <CardHeader>
+            <CardTitle>ユーザー</CardTitle>
+            <CardDescription>
+              {isLoading ? (
+                <Skeleton className="h-4 w-64" />
+              ) : (
+                'システム内のユーザー一覧'
+              )}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {error && <div className="text-red-500 mb-4">エラー: {error.message}</div>}
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>名前</TableHead>
+                  <TableHead>メールアドレス</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  // スケルトンローディング
+                  Array.from({ length: 5 }).map((_, index) => (
+                    <TableRow key={`skeleton-${index}`}>
+                      <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  // 実際のデータ
+                  users?.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell className="font-medium">{user.name}</TableCell>
                       <TableCell>{user.email}</TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        )}
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       </main>
     </>
   );
