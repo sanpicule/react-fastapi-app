@@ -22,7 +22,7 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
         
         # リクエストボディの読み取り
         request_body = None
-        if request.method in ["POST", "PUT", "POST", "DELETE"]:
+        if request.method in ["POST", "PUT", "PATCH", "DELETE"]:
             body = await request.body()
             if body:
                 try:
@@ -37,22 +37,26 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
 
         # レスポンスの取得
         response = await call_next(request)
-        
+
         # レスポンスボディの読み取り
         response_body = None
         response_body_bytes = b""
-        
-        if isinstance(response, StreamingResponse):
-            # StreamingResponseの場合、body_iteratorを読み取る
-            async for chunk in response.body_iterator:
-                response_body_bytes += chunk
-            
+        capture_response_body = request.method in ["POST", "PUT", "PATCH", "DELETE"]
+
+        if capture_response_body:
+            # body_iteratorを読み取る（StreamingResponseも通常のResponseも対応）
+            if hasattr(response, "body_iterator"):
+                async for chunk in response.body_iterator:
+                    response_body_bytes += chunk
+            elif hasattr(response, "body"):
+                response_body_bytes = response.body
+
             if response_body_bytes:
                 try:
                     response_body = response_body_bytes.decode("utf-8")
                 except Exception:
                     response_body = str(response_body_bytes)
-            
+
             # 新しいレスポンスを作成
             new_response = Response(
                 content=response_body_bytes,
@@ -61,14 +65,7 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
                 media_type=response.media_type,
             )
         else:
-            # 通常のResponseの場合
             new_response = response
-            if hasattr(response, 'body'):
-                response_body_bytes = response.body
-                try:
-                    response_body = response_body_bytes.decode("utf-8")
-                except Exception:
-                    response_body = str(response_body_bytes)
         
         # 監査ログの記録
         try:
