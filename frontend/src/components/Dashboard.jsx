@@ -15,19 +15,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-
-const fetchUsers = async () => {
-  const res = await fetch('/api/v1/users');
-  if (!res.ok) {
-    throw new Error('Network response was not ok');
-  }
-  return res.json();
-};
+import { useAuth } from '@/hooks/useAuth';
+import { apiFetch } from '@/lib/api';
 
 export function Dashboard() {
+  const { token } = useAuth();
   const { data: users, error, isLoading } = useQuery({
-    queryKey: ['users'],
-    queryFn: fetchUsers,
+    queryKey: ['users', token],
+    queryFn: () => apiFetch('/api/v1/users/', { token }),
+    enabled: Boolean(token),
   });
 
   return (

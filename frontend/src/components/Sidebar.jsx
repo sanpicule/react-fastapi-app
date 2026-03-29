@@ -1,9 +1,15 @@
-import { Home, Users, Settings, FileText } from 'lucide-react';
+import { FileText, LogOut, Users } from 'lucide-react';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
 
-export function Sidebar({ currentPage }) {
+export function Sidebar({ currentPage, onLogout, user }) {
+  const [showConfirm, setShowConfirm] = useState(false);
+
   const menuItems = [
     { id: 'users', label: 'ユーザー', icon: Users, href: '#users' },
-    { id: 'audit-logs', label: '監査ログ', icon: FileText, href: '#audit-logs' },
+    ...(user?.roles?.includes('admin')
+      ? [{ id: 'audit-logs', label: '監査ログ', icon: FileText, href: '#audit-logs' }]
+      : []),
   ];
 
   return (
@@ -34,6 +40,34 @@ export function Sidebar({ currentPage }) {
           })}
         </ul>
       </nav>
+      <div className="border-t p-4 space-y-3">
+        <div>
+          <div className="text-sm font-medium text-gray-900 dark:text-white">{user?.name}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-300">{user?.email}</div>
+        </div>
+        <Button className="w-full" onClick={() => setShowConfirm(true)} type="button" variant="outline">
+          <LogOut className="h-4 w-4" />
+          ログアウト
+        </Button>
+      </div>
+
+      {showConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg p-6 w-80 flex flex-col items-center gap-4">
+            <p className="text-sm font-medium text-gray-900 dark:text-white">
+              ログアウトしてもよろしいですか？
+            </p>
+            <div className="flex justify-center gap-2">
+              <Button variant="outline" onClick={() => setShowConfirm(false)}>
+                キャンセル
+              </Button>
+              <Button variant="destructive" onClick={() => { setShowConfirm(false); onLogout(); }}>
+                ログアウト
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
