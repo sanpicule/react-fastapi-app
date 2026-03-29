@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Table,
   TableBody,
@@ -17,32 +17,42 @@ import {
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { apiFetch } from '@/lib/api';
 
 export function AuditLogs() {
+  const { token } = useAuth();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [error, setError] = useState('');
   const itemsPerPage = 15;
 
-  useEffect(() => {
-    fetchLogs();
-  }, [currentPage]);
+  const fetchLogs = useCallback(async () => {
+    if (!token) {
+      return;
+    }
 
-  const fetchLogs = async () => {
     setLoading(true);
+    setError('');
     try {
       const offset = (currentPage - 1) * itemsPerPage;
-      const response = await fetch(`/api/v1/audit-logs?limit=${itemsPerPage}&offset=${offset}`);
-      const data = await response.json();
+      const data = await apiFetch(`/api/v1/audit-logs/?limit=${itemsPerPage}&offset=${offset}`, {
+        token,
+      });
       setLogs(data.items);
       setTotalCount(data.total);
-    } catch (error) {
-      console.error('Failed to fetch audit logs:', error);
+    } catch (fetchError) {
+      setError(fetchError.message);
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, itemsPerPage, token]);
+
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleString('ja-JP');
@@ -64,19 +74,20 @@ export function AuditLogs() {
 
   return (
     <div className="p-8">
-      <Card>
-        <CardHeader>
-          <CardTitle>監査ログ</CardTitle>
-          <CardDescription>
-            {loading ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>監査ログ</CardTitle>
+            <CardDescription>
+              {loading ? (
               <Skeleton className="h-4 w-64" />
             ) : (
               `システムの全アクティビティを記録しています（全${totalCount}件）`
             )}
           </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
+          </CardHeader>
+          <CardContent>
+            {error && <div className="text-red-500 mb-4">エラー: {error}</div>}
+            <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>日時</TableHead>

@@ -13,6 +13,7 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
         "/docs",
         "/redoc",
         "/openapi.json",
+        "/.well-known/jwks.json",
     }
     
     async def dispatch(self, request: Request, call_next):
@@ -69,9 +70,16 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
         
         # 監査ログの記録
         try:
+            auth_user = getattr(request.state, "auth_user", None)
+            user_id = None
+            if isinstance(auth_user, dict):
+                raw_user_id = auth_user.get("user_id")
+                if isinstance(raw_user_id, int):
+                    user_id = raw_user_id
+
             async with AsyncSessionLocal() as session:
                 audit_log = AuditLog(
-                    user_id=None,  # 認証実装後にユーザーIDを設定
+                    user_id=user_id,
                     action=f"{request.method} {request.url.path}",
                     resource_type=self._extract_resource_type(request.url.path),
                     resource_id=self._extract_resource_ids(request.path_params),
